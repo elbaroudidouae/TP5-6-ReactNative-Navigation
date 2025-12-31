@@ -1,30 +1,60 @@
-import { ActionSheetIOS, StyleSheet } from 'react-native';
-import { NavigationContainer } from "@react-navigation/native";
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { Provider } from "react-redux";
-import { useContext } from "react";
+import { useEffect, useState, useContext } from "react";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
+import { initDB } from "./services/database";
+import { ThemeProvider, ThemeContext } from "./context/ThemeContext";
+import TodoListOfflineScreen from "./screens/TodoListOfflineScreen";
 
-import AuthProvider, { AuthContext } from "./context/AuthContext";
-import AppStack from "./navigation/AppStack";
-import LoginScreen from "./screens/LoginScreen";
-import { store } from "./store/store";
+function MainApp() {
+  const { theme } = useContext(ThemeContext);
 
-function RootNavigator() {
-  const { user } = useContext(AuthContext);
-
-  return user ? <AppStack /> : <LoginScreen />;
+  return (
+    <View
+      style={[
+        styles.container,
+        theme === "dark" ? styles.dark : styles.light,
+      ]}
+    >
+      <TodoListOfflineScreen />
+    </View>
+  );
 }
 
 export default function App() {
+  const [dbReady, setDbReady] = useState(false);
+
+  useEffect(() => {
+    const prepareDb = async () => {
+      try {
+        // Initialize database
+        await initDB();
+      } catch (e) {
+        console.warn(e);
+      }
+      setDbReady(true); // OK pour afficher l’app
+    };
+    prepareDb();
+  }, []);
+
+  if (!dbReady) {
+    return <ActivityIndicator size="large" />;
+  }
+
   return (
-    <Provider store={store}>
-      <AuthProvider>
-        <SafeAreaProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </AuthProvider>
-    </Provider>
+    <ThemeProvider>
+      <MainApp />
+    </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 40,
+  },
+  light: {
+    backgroundColor: "#ffffff",
+  },
+  dark: {
+    backgroundColor: "#121212",
+  },
+});
